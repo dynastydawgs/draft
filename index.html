@@ -199,25 +199,17 @@ const STARTER_SLOTS = [
 
 let drafted = {}, picks = [], currentPick = 0, activeFilter = 'ALL';
 
-const DRAFT_ORDER = [
-  't1', // Pick 1
-  't2', // Pick 2
-  't1', // Pick 3
-  't2', // Pick 4
-  't2', // Pick 5
-  't1', // Pick 6
-  't2', // Pick 7
-  't1', // Pick 8
-  't2', // Pick 9
-  't1', // Pick 10
-  't2', // Pick 11
-  't1', // Pick 12
-  't2', // Pick 13
-  't1'  // Pick 14
-];
+const START_ORDER = ['t1','t2','t1','t2','t2'];
 
 function curTeam() {
-  return DRAFT_ORDER[currentPick] || 't1';
+  // first 5 picks are hard-coded
+  if (currentPick < START_ORDER.length) {
+    return START_ORDER[currentPick];
+  }
+
+  // after pick 5 → simple alternating
+  const i = currentPick - START_ORDER.length;
+  return i % 2 === 0 ? 't1' : 't2';
 }
 
 function roundInfo() {
