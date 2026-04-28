@@ -1,0 +1,352 @@
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .app { padding: 0.75rem; font-family: var(--font-sans, system-ui); }
+  .leg { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--color-text-secondary); }
+  .leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .main { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .col-title { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 0.5px solid var(--color-border-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+  .player-list { display: flex; flex-direction: column; gap: 3px; }
+  .player-row { display: flex; align-items: center; padding: 5px 7px; border-radius: 5px; border: 0.5px solid transparent; font-size: 11px; gap: 4px; }
+  .player-row.available { cursor: pointer; }
+  .player-row.available:hover { filter: brightness(0.94); }
+  .player-row.drafted { opacity: 0.3; pointer-events: none; }
+  .pos-tag { font-size: 9px; font-weight: 500; padding: 1px 4px; border-radius: 3px; flex-shrink: 0; width: 30px; text-align: center; }
+  .player-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player-val { font-size: 10px; flex-shrink: 0; }
+  .pick-btn { font-size: 10px; padding: 2px 7px; border-radius: 4px; border: 1.5px solid; cursor: pointer; flex-shrink: 0; font-weight: 500; }
+  .pick-btn:hover { filter: brightness(0.88); }
+  .drafted-by { font-size: 9px; color: var(--color-text-tertiary); flex-shrink: 0; font-style: italic; }
+  .filter-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+  .filter-btn { font-size: 10px; padding: 2px 7px; border-radius: 4px; border: 0.5px solid var(--color-border-secondary); background: transparent; cursor: pointer; color: var(--color-text-secondary); }
+  .filter-btn.on { background: var(--color-background-info); color: var(--color-text-info); border-color: #185FA5; }
+  .turn-banner { padding: 7px 12px; border-radius: 7px; font-size: 13px; font-weight: 500; text-align: center; margin-bottom: 10px; }
+  .turn-t1 { background: #DBEAFE; color: #042C53; border: 1px solid #2563EB; }
+  .turn-t2 { background: #EDE9FE; color: #26215C; border: 1px solid #7C3AED; }
+  .undo-btn { font-size: 11px; padding: 4px 10px; border-radius: 5px; border: 0.5px solid var(--color-border-secondary); background: transparent; cursor: pointer; color: var(--color-text-primary); }
+  .undo-btn:hover { background: var(--color-background-secondary); }
+  .section-label { font-size: 10px; font-weight: 500; color: var(--color-text-secondary); padding: 4px 0 3px; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .roster-slot { display: flex; align-items: center; gap: 4px; padding: 4px 7px; border-radius: 5px; border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); margin-bottom: 3px; min-height: 26px; font-size: 11px; }
+  .roster-slot.filled { background: var(--color-background-primary); }
+  .slot-key { font-size: 9px; color: var(--color-text-tertiary); width: 36px; flex-shrink: 0; }
+  .slot-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slot-val { font-size: 10px; color: var(--color-text-secondary); flex-shrink: 0; }
+  .empty-text { color: var(--color-text-tertiary); font-style: italic; }
+  .log-entry { font-size: 11px; padding: 3px 6px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 5px; }
+  .log-round { font-size: 10px; color: var(--color-text-tertiary); flex-shrink: 0; width: 22px; }
+  .log-name { flex: 1; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .log-val { font-size: 10px; color: var(--color-text-secondary); flex-shrink: 0; }
+</style>
+
+<div class="app">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+    <div style="font-size:15px;font-weight:500;color:var(--color-text-primary);">2026 Dispersal Draft</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div class="leg"><div class="leg-dot" style="background:#EDE9FE;border:1px solid #7C3AED;"></div><span style="color:#26215C;font-weight:500;">QB</span></div>
+      <div class="leg"><div class="leg-dot" style="background:#D1FAE5;border:1px solid #059669;"></div><span style="color:#04342C;font-weight:500;">RB</span></div>
+      <div class="leg"><div class="leg-dot" style="background:#DBEAFE;border:1px solid #2563EB;"></div><span style="color:#042C53;font-weight:500;">WR</span></div>
+      <div class="leg"><div class="leg-dot" style="background:#FEF3C7;border:1px solid #B45309;"></div><span style="color:#412402;font-weight:500;">TE</span></div>
+      <div class="leg"><div class="leg-dot" style="background:#F3F4F6;border:1px solid #4B5563;"></div><span style="color:#2C2C2A;font-weight:500;">Pick</span></div>
+    </div>
+    <button class="undo-btn" onclick="undoPick()">↩ Undo</button>
+  </div>
+
+  <div id="turn-banner" class="turn-banner turn-t1">MalykJamous's pick — Round 1, Pick 1</div>
+
+  <div class="main">
+    <div>
+      <div class="col-title">Draft Pool</div>
+      <div class="filter-row">
+        <button class="filter-btn on" onclick="setFilter('ALL',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('QB',this)">QB</button>
+        <button class="filter-btn" onclick="setFilter('RB',this)">RB</button>
+        <button class="filter-btn" onclick="setFilter('WR',this)">WR</button>
+        <button class="filter-btn" onclick="setFilter('TE',this)">TE</button>
+        <button class="filter-btn" onclick="setFilter('PICK',this)">Picks</button>
+      </div>
+      <div style="overflow-y:auto;max-height:560px;">
+        <div class="player-list" id="player-list"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="col-title" style="color:#2563EB;">MalykJamous</div>
+      <div style="overflow-y:auto;max-height:580px;">
+        <div class="section-label">Starters</div>
+        <div id="starters-t1"></div>
+        <div class="section-label" style="margin-top:6px;">Bench</div>
+        <div id="bench-t1"></div>
+        <div class="section-label" style="margin-top:6px;">Draft Picks</div>
+        <div id="draftpicks-t1"></div>
+        <div class="section-label" style="margin-top:6px;">Pick log</div>
+        <div id="log-t1"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="col-title" style="color:#7C3AED;">Cgriffin81</div>
+      <div style="overflow-y:auto;max-height:580px;">
+        <div class="section-label">Starters</div>
+        <div id="starters-t2"></div>
+        <div class="section-label" style="margin-top:6px;">Bench</div>
+        <div id="bench-t2"></div>
+        <div class="section-label" style="margin-top:6px;">Draft Picks</div>
+        <div id="draftpicks-t2"></div>
+        <div class="section-label" style="margin-top:6px;">Pick log</div>
+        <div id="log-t2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const POS = {
+  QB:   { rowBg:'#EDE9FE', rowBorder:'#7C3AED', tagBg:'#7C3AED', tagText:'#ffffff', nameColor:'#26215C', valColor:'#3C3489', btnBg:'#EDE9FE', btnBorder:'#7C3AED', btnText:'#26215C' },
+  RB:   { rowBg:'#D1FAE5', rowBorder:'#059669', tagBg:'#059669', tagText:'#ffffff', nameColor:'#04342C', valColor:'#085041', btnBg:'#D1FAE5', btnBorder:'#059669', btnText:'#04342C' },
+  WR:   { rowBg:'#DBEAFE', rowBorder:'#2563EB', tagBg:'#2563EB', tagText:'#ffffff', nameColor:'#042C53', valColor:'#0C447C', btnBg:'#DBEAFE', btnBorder:'#2563EB', btnText:'#042C53' },
+  TE:   { rowBg:'#FEF3C7', rowBorder:'#B45309', tagBg:'#B45309', tagText:'#ffffff', nameColor:'#412402', valColor:'#633806', btnBg:'#FEF3C7', btnBorder:'#B45309', btnText:'#412402' },
+  PICK: { rowBg:'#F3F4F6', rowBorder:'#6B7280', tagBg:'#4B5563', tagText:'#ffffff', nameColor:'#2C2C2A', valColor:'#444441', btnBg:'#F3F4F6', btnBorder:'#4B5563', btnText:'#2C2C2A' }
+};
+
+const PLAYERS = [
+  {id:1, name:"Ja'Marr Chase",              pos:"WR",  val:9899},
+  {id:2, name:"Jaxon Smith-Njigba",         pos:"WR",  val:9880},
+  {id:3, name:"Puka Nacua",                 pos:"WR",  val:8601},
+  {id:4, name:"Tyler Warren",               pos:"TE",  val:6333},
+  {id:5, name:"George Pickens",             pos:"WR",  val:5958},
+  {id:6, name:"Garrett Wilson",             pos:"WR",  val:5769},
+  {id:7, name:"Cam Ward",                   pos:"QB",  val:5244},
+  {id:8, name:"Christian McCaffrey",        pos:"RB",  val:5026},
+  {id:9, name:"Saquon Barkley",             pos:"RB",  val:4944},
+  {id:10,name:"A.J. Brown",                 pos:"WR",  val:4841},
+  {id:11,name:"Jared Goff",                 pos:"QB",  val:4687},
+  {id:12,name:"Travis Etienne",             pos:"RB",  val:4451},
+  {id:13,name:"2028 1st (MalykJamous)",     pos:"PICK",val:4425},
+  {id:14,name:"George Kittle",              pos:"TE",  val:3849},
+  {id:15,name:"D.J. Moore",                 pos:"WR",  val:3807},
+  {id:16,name:"Ricky Pearsall",             pos:"WR",  val:3565},
+  {id:17,name:"Kyle Monangai",              pos:"RB",  val:3564},
+  {id:18,name:"Terry McLaurin",             pos:"WR",  val:3487},
+  {id:19,name:"2027 2nd (Nabers in Paris)", pos:"PICK",val:3400},
+  {id:73,name:"2027 2nd (MalykJamous)",     pos:"PICK",val:3400},
+  {id:20,name:"Xavier Worthy",              pos:"WR",  val:3383},
+  {id:21,name:"Denzel Boston",              pos:"WR",  val:3371},
+  {id:22,name:"Chuba Hubbard",              pos:"RB",  val:3322},
+  {id:23,name:"Chigoziem Okonkwo",          pos:"TE",  val:3253},
+  {id:25,name:"Jakobi Meyers",              pos:"WR",  val:3232},
+  {id:24,name:"Gunnar Helm",                pos:"TE",  val:3133},
+  {id:26,name:"2028 2nd (MalykJamous)",     pos:"PICK",val:2951},
+  {id:27,name:"Rhamondre Stevenson",        pos:"RB",  val:2876},
+  {id:28,name:"Jake Tonges",                pos:"TE",  val:2762},
+  {id:29,name:"Juwan Johnson",              pos:"TE",  val:2734},
+  {id:30,name:"Theo Johnson",               pos:"TE",  val:2724},
+  {id:31,name:"Jauan Jennings",             pos:"WR",  val:2702},
+  {id:32,name:"Chimere Dike",               pos:"WR",  val:2679},
+  {id:33,name:"Ollie Gordon",               pos:"RB",  val:2515},
+  {id:34,name:"Mike Washington Jr.",        pos:"RB",  val:2485},
+  {id:35,name:"Brian Robinson",             pos:"RB",  val:2414},
+  {id:36,name:"Jalen Milroe",               pos:"QB",  val:2386},
+  {id:37,name:"Zachariah Branch",           pos:"WR",  val:2386},
+  {id:38,name:"Trey Benson",                pos:"RB",  val:2365},
+  {id:39,name:"Kimani Vidal",               pos:"RB",  val:2317},
+  {id:40,name:"Isiah Pacheco",              pos:"RB",  val:2298},
+  {id:41,name:"Marvin Mims",                pos:"WR",  val:2291},
+  {id:42,name:"Geno Smith",                 pos:"QB",  val:2126},
+  {id:43,name:"2028 3rd (MalykJamous)",     pos:"PICK",val:2069},
+  {id:44,name:"2028 3rd (Ja'Tavion)",       pos:"PICK",val:2069},
+  {id:45,name:"Christian Kirk",             pos:"WR",  val:2060},
+  {id:46,name:"Quinn Ewers",                pos:"QB",  val:1844},
+  {id:47,name:"Garrett Nussmeier",          pos:"QB",  val:1823},
+  {id:48,name:"Jalen Royals",               pos:"WR",  val:1809},
+  {id:49,name:"Joe Milton",                 pos:"QB",  val:1723},
+  {id:50,name:"Devaughn Vele",              pos:"WR",  val:1667},
+  {id:51,name:"2027 4th (The Unction)",     pos:"PICK",val:1682},
+  {id:52,name:"2027 4th (MalykJamous)",     pos:"PICK",val:1682},
+  {id:53,name:"Audric Estime",              pos:"RB",  val:1622},
+  {id:54,name:"Calvin Austin III",          pos:"WR",  val:1616},
+  {id:55,name:"2028 4th (Cgriffin81)",      pos:"PICK",val:1550},
+  {id:56,name:"2028 4th (MalykJamous)",     pos:"PICK",val:1550},
+  {id:57,name:"Zach Ertz",                  pos:"TE",  val:1481},
+  {id:58,name:"Jameis Winston",             pos:"QB",  val:1473},
+  {id:59,name:"Devin Singletary",           pos:"RB",  val:1439},
+  {id:60,name:"Cade Klubnik",               pos:"QB",  val:1324},
+  {id:61,name:"Emari Demercado",            pos:"RB",  val:1216},
+  {id:62,name:"Joe Mixon",                  pos:"RB",  val:1206},
+  {id:63,name:"Kareem Hunt",                pos:"RB",  val:1051},
+  {id:64,name:"Dameon Pierce",              pos:"RB",  val:1041},
+  {id:65,name:"Taysom Hill",                pos:"TE",  val:952},
+  {id:66,name:"Le'Veon Moss",               pos:"RB",  val:965},
+  {id:67,name:"Nick Chubb",                 pos:"RB",  val:882},
+  {id:68,name:"DeAndre Hopkins",            pos:"WR",  val:777},
+  {id:69,name:"Carson Wentz",               pos:"QB",  val:591},
+  {id:70,name:"Tyler Lockett",              pos:"WR",  val:590},
+  {id:71,name:"Andy Dalton",                pos:"QB",  val:356},
+  {id:72,name:"Jackson Hawes",              pos:"TE",  val:0}
+].sort((a,b) => b.val - a.val);
+
+const STARTER_SLOTS = [
+  {key:'QB',   label:'QB',   eligible:['QB']},
+  {key:'RB1',  label:'RB1',  eligible:['RB']},
+  {key:'RB2',  label:'RB2',  eligible:['RB']},
+  {key:'WR1',  label:'WR1',  eligible:['WR']},
+  {key:'WR2',  label:'WR2',  eligible:['WR']},
+  {key:'WR3',  label:'WR3',  eligible:['WR']},
+  {key:'TE',   label:'TE',   eligible:['TE']},
+  {key:'FLX1', label:'FLEX1',eligible:['RB','WR','TE']},
+  {key:'FLX2', label:'FLEX2',eligible:['RB','WR','TE']},
+  {key:'FLX3', label:'FLEX3',eligible:['RB','WR','TE']},
+  {key:'SFLX', label:'SFLX', eligible:['QB','RB','WR','TE']}
+];
+
+let drafted = {}, picks = [], currentPick = 0, activeFilter = 'ALL';
+
+const DRAFT_ORDER = [
+  't1', // Pick 1
+  't2', // Pick 2
+  't1', // Pick 3
+  't2', // Pick 4
+  't2', // Pick 5
+  't1', // Pick 6
+  't2', // Pick 7
+  't1', // Pick 8
+  't2', // Pick 9
+  't1', // Pick 10
+  't2', // Pick 11
+  't1', // Pick 12
+  't2', // Pick 13
+  't1'  // Pick 14
+];
+
+function curTeam() {
+  return DRAFT_ORDER[currentPick] || 't1';
+}
+
+function roundInfo() {
+  return `Pick ${currentPick + 1}`;
+}
+
+function draftPlayer(id) {
+  if (drafted[id]) return;
+  const team = curTeam();
+  drafted[id] = team;
+  picks.push({id, team, pickNum: currentPick});
+  currentPick++;
+  render();
+}
+function undoPick() {
+  if (!picks.length) return;
+  const last = picks.pop();
+  delete drafted[last.id];
+  currentPick--;
+  render();
+}
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
+
+function buildRoster(team) {
+  const slots = {};
+  STARTER_SLOTS.forEach(s => slots[s.key] = null);
+  const bench = [];
+  picks.filter(p=>p.team===team).map(p=>PLAYERS.find(pl=>pl.id===p.id)).filter(Boolean).forEach(pl => {
+    let placed = false;
+    for (const s of STARTER_SLOTS) {
+      if (!slots[s.key] && s.eligible.includes(pl.pos)) { slots[s.key]=pl; placed=true; break; }
+    }
+    if (pl.pos === 'PICK') return;
+    if (!placed) bench.push(pl);
+  });
+  return {slots, bench};
+}
+
+function slotHTML(label, player) {
+  if (!player) return `<div class="roster-slot"><span class="slot-key">${label}</span><span class="empty-text">empty</span></div>`;
+  const c = POS[player.pos]||POS.PICK;
+  return `<div class="roster-slot filled" style="border-color:${c.rowBorder};">
+    <span class="slot-key">${label}</span>
+    <span class="pos-tag" style="background:${c.tagBg};color:${c.tagText};">${player.pos}</span>
+    <span class="slot-name" style="color:${c.nameColor};">${player.name}</span>
+    <span class="slot-val" style="color:${c.valColor};">(${player.val})</span>
+  </div>`;
+}
+function benchSlotHTML(player) {
+  const c = POS[player.pos]||POS.PICK;
+  return `<div class="roster-slot filled" style="border-color:${c.rowBorder};">
+    <span class="pos-tag" style="background:${c.tagBg};color:${c.tagText};">${player.pos}</span>
+    <span class="slot-name" style="color:${c.nameColor};">${player.name}</span>
+    <span class="slot-val" style="color:${c.valColor};">(${player.val})</span>
+  </div>`;
+}
+function renderDraftPicks(team) {
+  const pickPlayers = picks
+    .filter(p => p.team === team)
+    .map(p => PLAYERS.find(pl => pl.id === p.id))
+    .filter(pl => pl && pl.pos === 'PICK');
+
+  document.getElementById(`draftpicks-${team}`).innerHTML =
+    pickPlayers.length === 0
+      ? `<div style="font-size:11px;color:var(--color-text-tertiary);font-style:italic;padding:4px 6px;">No draft picks</div>`
+      : pickPlayers.map(pl => {
+          const c = POS.PICK;
+
+          return `
+            <div class="roster-slot filled" style="border-color:${c.rowBorder};">
+              <span class="pos-tag" style="background:${c.tagBg};color:${c.tagText};">${pl.pos}</span>
+              <span class="slot-name" style="color:${c.nameColor};">${pl.name}</span>
+              <span class="slot-val" style="color:${c.valColor};">(${pl.val})</span>
+            </div>
+          `;
+        }).join('');
+}
+function renderTeam(team) {
+  const {slots, bench} = buildRoster(team);
+  document.getElementById(`starters-${team}`).innerHTML = STARTER_SLOTS.map(s=>slotHTML(s.label,slots[s.key])).join('');
+  document.getElementById(`bench-${team}`).innerHTML = bench.length===0
+    ? `<div style="font-size:11px;color:var(--color-text-tertiary);font-style:italic;padding:4px 6px;">No bench players yet</div>`
+    : bench.map(benchSlotHTML).join('');
+  const teamPicks = picks.filter(p=>p.team===team);
+  document.getElementById(`log-${team}`).innerHTML = teamPicks.length===0
+    ? `<div style="font-size:11px;color:var(--color-text-tertiary);font-style:italic;padding:4px 6px;">No picks yet</div>`
+    : teamPicks.map(pk => {
+        const pl = PLAYERS.find(p=>p.id===pk.id);
+        const c = POS[pl.pos]||POS.PICK;
+        const round = Math.floor(pk.pickNum/2)+1;
+        const pip = (pk.pickNum%2)+1;
+        return `<div class="log-entry">
+          <span class="log-round">R${round}.${pip}</span>
+          <span class="pos-tag" style="background:${c.tagBg};color:${c.tagText};font-size:9px;padding:1px 3px;">${pl.pos}</span>
+          <span class="log-name" style="color:${c.nameColor};">${pl.name}</span>
+          <span class="log-val" style="color:${c.valColor};">(${pl.val})</span>
+        </div>`;
+      }).join('');
+}
+
+function renderPool() {
+  const filtered = PLAYERS.filter(p => activeFilter==='ALL' || p.pos===activeFilter);
+  document.getElementById('player-list').innerHTML = filtered.map(p => {
+    const c = POS[p.pos]||POS.PICK;
+    const isD = drafted[p.id];
+    const dLabel = isD==='t1'?'MC':isD==='t2'?'MJ':'';
+    return `<div class="player-row ${isD?'drafted':'available'}" style="background:${c.rowBg};border-color:${c.rowBorder};">
+      <span class="pos-tag" style="background:${c.tagBg};color:${c.tagText};">${p.pos}</span>
+      <span class="player-name" style="color:${c.nameColor};">${p.name}</span>
+      <span class="player-val" style="color:${c.valColor};">(${p.val})</span>
+      ${isD
+        ? `<span class="drafted-by">${dLabel}</span>`
+        : `<button class="pick-btn" style="background:${c.btnBg};border-color:${c.btnBorder};color:${c.btnText};" onclick="draftPlayer(${p.id})">Pick</button>`}
+    </div>`;
+  }).join('');
+}
+
+function renderBanner() {
+  const t = curTeam();
+  const b = document.getElementById('turn-banner');
+  b.className = 'turn-banner '+(t==='t1'?'turn-t1':'turn-t2');
+  b.textContent = (t==='t1'?"MalykJamous's pick":"Cgriffin81's pick")+' — '+roundInfo();
+}
+
+function render() { renderBanner(); renderPool(); renderTeam('t1'); renderTeam('t2'); renderDraftPicks('t1'); renderDraftPicks('t2'); }
+render();
+</script>
