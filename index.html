@@ -35,6 +35,52 @@
   .log-round { font-size: 10px; color: var(--color-text-tertiary); flex-shrink: 0; width: 22px; }
   .log-name { flex: 1; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .log-val { font-size: 10px; color: var(--color-text-secondary); flex-shrink: 0; }
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+body {
+  overflow-x: hidden;
+}
+/* ===== MOBILE RESPONSIVE FIX ===== */
+@media (max-width: 900px) {
+  .main {
+    grid-template-columns: 1fr;
+  }
+
+  .col-title {
+    font-size: 14px;
+  }
+
+  .player-row {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  .pos-tag {
+    width: 38px;
+    font-size: 10px;
+  }
+
+  .player-val {
+    font-size: 11px;
+  }
+
+  .pick-btn {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+
+  .log-entry {
+    font-size: 12px;
+  }
+
+  .roster-slot {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+}
 </style>
 
 <div class="app">
@@ -99,14 +145,14 @@ db.ref("draft").on("value", (snapshot) => {
         <button class="filter-btn" onclick="setFilter('TE',this)">TE</button>
         <button class="filter-btn" onclick="setFilter('PICK',this)">Picks</button>
       </div>
-      <div style="overflow-y:auto;max-height:560px;">
+      <div style="overflow-y:auto;max-height:60vh;">
         <div class="player-list" id="player-list"></div>
       </div>
     </div>
 
     <div>
       <div class="col-title" style="color:#2563EB;">MalykJamous</div>
-      <div style="overflow-y:auto;max-height:580px;">
+      <div style="overflow-y:auto;max-height:60vh;">
         <div class="section-label">Starters</div>
         <div id="starters-t1"></div>
         <div class="section-label" style="margin-top:6px;">Bench</div>
@@ -120,7 +166,7 @@ db.ref("draft").on("value", (snapshot) => {
 
     <div>
       <div class="col-title" style="color:#7C3AED;">Cgriffin81</div>
-      <div style="overflow-y:auto;max-height:580px;">
+      <div style="overflow-y:auto;max-height:60vh;">
         <div class="section-label">Starters</div>
         <div id="starters-t2"></div>
         <div class="section-label" style="margin-top:6px;">Bench</div>
