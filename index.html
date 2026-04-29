@@ -50,6 +50,42 @@
     <button class="undo-btn" onclick="undoPick()">↩ Undo</button>
   </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAsxYX9h4u-iS2Xxq-DC_PSs9cJ6sqs6Es",
+    authDomain: "draft-d0aaf.firebaseapp.com",
+    databaseURL: "https://draft-d0aaf-default-rtdb.firebaseio.com",
+    projectId: "draft-d0aaf",
+    storageBucket: "draft-d0aaf.firebasestorage.app",
+    messagingSenderId: "153279585761",
+    appId: "1:153279585761:web:56d52667ba0a6f15f886a0",
+    measurementId: "G-B38HVY6GWF"
+  };
+
+firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+db.ref("draft").on("value", (snapshot) => {
+  const data = snapshot.val();
+
+  if (!data) return;
+
+  picks = data.picks || [];
+  currentPick = data.currentPick || 0;
+
+  // rebuild drafted map from picks
+  drafted = {};
+  picks.forEach(p => {
+    drafted[p.id] = p.team;
+  });
+
+  render();
+});
+</script>
+
+
   <div id="turn-banner" class="turn-banner turn-t1">MalykJamous's pick — Round 1, Pick 1</div>
 
   <div class="main">
@@ -218,19 +254,48 @@ function roundInfo() {
 
 function draftPlayer(id) {
   if (drafted[id]) return;
+
   const team = curTeam();
+
+  const newPick = {
+    id,
+    team,
+    pickNum: currentPick
+  };
+
+  picks.push(newPick);
   drafted[id] = team;
-  picks.push({id, team, pickNum: currentPick});
   currentPick++;
+
+  // SAVE TO FIREBASE
+  db.ref("draft").set({
+    picks,
+    currentPick
+  });
+
   render();
 }
+
 function undoPick() {
   if (!picks.length) return;
-  const last = picks.pop();
-  delete drafted[last.id];
+
+  picks.pop();
   currentPick--;
+
+  // rebuild drafted map
+  drafted = {};
+  picks.forEach(p => {
+    drafted[p.id] = p.team;
+  });
+
+  db.ref("draft").set({
+    picks,
+    currentPick
+  });
+
   render();
 }
+
 function setFilter(f, btn) {
   activeFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('on'));
